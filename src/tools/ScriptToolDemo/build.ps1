@@ -1,2 +1,2 @@
 param ([string]$target)
-Compress-Archive -Path Scripts\* -DestinationPath $target
+Compress-Archive -Force -Path Scripts\* -DestinationPath $target

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using Metatool.Utils;
@@ -12,21 +13,23 @@ namespace Metaseed.Metatool
 {
     public class Scaffolder
     {
-        private readonly ILogger _logger;
+        private readonly ILogger       _logger;
         private readonly CommandRunner _commandRunner;
 
         public Scaffolder(ILogger logger)
         {
-            _logger = logger;
+            _logger        = logger;
             _commandRunner = new CommandRunner(logger);
         }
+
         public void RegisterFileHandler()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 // register dotnet-script as the tool to process .csx files
                 _commandRunner.Execute("reg", @"add HKCU\Software\classes\.csx /f /ve /t REG_SZ /d metatool");
-                _commandRunner.Execute("reg", $@"add HKCU\Software\Classes\metatool\Shell\Open\Command /f /ve /t REG_EXPAND_SZ /d ""\""%MetatoolDir%\Metatool.exe\"" \""%1\"" -- %*""");
+                _commandRunner.Execute("reg",
+                    $@"add HKCU\Software\Classes\metatool\Shell\Open\Command /f /ve /t REG_EXPAND_SZ /d ""\""%MetatoolDir%\Metatool.exe\"" \""%1\"" -- %*""");
             }
         }
 
@@ -44,13 +47,15 @@ namespace Metaseed.Metatool
             return s;
         }
 
-        public void InitScriptTemplate(string toolName, string dir=null)
+        public void InitScriptTemplate(string toolName, string dir = null)
         {
             dir??=Path.Combine(AppContext.BaseDirectory, "tools", toolName);
             var zipPath = Path.Combine(AppContext.BaseDirectory, "ToolTemplate.zip");
-            ZipFile.ExtractToDirectory(zipPath, dir , true);
+            var resourceStream = typeof(Scaffolder).GetTypeInfo().Assembly
+                .GetManifestResourceStream($"Metaseed.Metatool.ToolTemplate.zip");
+            var archive = new ZipArchive(resourceStream);
+            archive.ExtractToDirectory(dir, true);
             _logger.LogInformation($"Metatool Script: {toolName} is created in folder: {dir}");
         }
-
     }
 }
